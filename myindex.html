@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +34,7 @@
       letter-spacing: 2px;
     }
     /* 文章段落 */
-    .text {
+    .main > p {
       text-indent: 2em;
       margin: 0.5em 0;
       text-align: justify;;
@@ -209,20 +209,7 @@
       <button class="go-back"><span class="back-icon"></span>返回书架</button>
     </div>
   </header>
-  <article class="main wrap" id="main">
-    <h1 class="title">死扥死扥</h1>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-    <p class="text">发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等发扥等等</p>
-  </article>
+  <article class="main wrap" id="main"></article>
   <nav class="nav wrap">
     <button class="chapter-selector" id="preChapter">上一章</button>
     <button class="chapter-selector" id="nextChapter">下一章</button>
@@ -271,9 +258,32 @@
         function storageSetter(key, value) {
           localStorage.setItem(prefix + key, value);
         }
+        function getJSONP(url) {
+          return new Promise(function(resolve, reject) {
+            $.jsonp({
+              url,
+              cache: true,
+              callback: "duokan_fiction_chapter",
+              success(result) {
+                result = $.base64.decode(result);
+                result = decodeURIComponent(escape(result));
+                resolve(result);
+              }
+            });
+          });
+        }
+        function getJSON(url) {
+          return new Promise(function(resolve, reject) {
+            $.getJSON(url, function(data) {
+              resolve(data);
+            });
+          });
+        }
         return {
           storageGetter,
-          storageSetter
+          storageSetter,
+          getJSON,
+          getJSONP
         };
       })();
       // dom缓存
@@ -287,8 +297,11 @@
         colorBox: $('#colorBox'),
         brightness: $('#brightness')
       };
-      let initFontSize = Util.storageGetter('fontSize') || 14;
-      let colorIndex = Util.storageGetter('colorSetting') || 2;
+      // 获取localstorge中的参数
+      let initFontSize = parseInt(Util.storageGetter('fontSize')) || 14;
+      let colorIndex = parseInt(Util.storageGetter('colorSetting')) || 2;
+      let chaptersInfo;
+      let chapterID = parseInt(Util.storageGetter('chapterID')) || 0;
       /**
        * 更改背景和字体颜色
        * @param  {number} i 被选项索引
@@ -310,6 +323,29 @@
       function renderInit() {
         DOM.main.css('font-size', initFontSize + 'px');
         renderColors(colorIndex);
+      }
+      // 数据渲染
+      function renderModel() {
+        Util.getJSON(`data/data${chapterID+1}.json`)
+          .then(function(data) {
+            return Util.getJSONP(data.jsonp);
+          }).then(function(data) {
+            data = JSON.parse(data);
+            let html = `<h3 class="title">${data.t}</h3>`;
+            for (let p of data.p) {
+              html += `<p>${p}</p>`;
+            }
+            DOM.main.html(html);
+          });
+      }
+      // 数据初始化
+      function modelInit() {
+        Util.getJSON('data/chapter.json').then(function(data) {
+          if (data.result === 0) {
+            chaptersInfo = data.chapters;
+            renderModel();
+          };
+        });
       }
       // 事件绑定
       function eventHandler() {
@@ -356,6 +392,7 @@
             Util.storageSetter('fontSize', initFontSize);
           }
         })
+        // 切换背景和字体颜色
         DOM.colorBox.click(function(e) {
           let $target = $(e.target);
           let colorIndex = $target.index();
@@ -376,11 +413,26 @@
             $this.removeClass('active');
             renderColors(2);
           }
-        })
+        });
+        $('#preChapter').click(function() {
+          if (chapterID > 0) {
+            chapterID -= 1;
+            renderModel();
+            Util.storageSetter('chapterID', chapterID);
+          }
+        });
+        $('#nextChapter').click(function() {
+          if (chapterID < 3) {
+            chapterID += 1;
+            renderModel();
+            Util.storageSetter('chapterID', chapterID);
+          }
+        });
       }
       // 入口函数
       !function() {
         renderInit();
+        modelInit();
         eventHandler();
       }();
     }();
