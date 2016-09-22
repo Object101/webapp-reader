@@ -258,7 +258,6 @@
   <script>
     window.jQuery = $;
   </script>
-  <script src="js/jquery.base64.js"></script>
   <script src="js/jquery.jsonp.js"></script>
   <script>
     'user strict';
@@ -279,7 +278,7 @@
               cache: true,
               callback: "duokan_fiction_chapter",
               success(result) {
-                result = $.base64.decode(result);
+                result = atob(result);
                 result = decodeURIComponent(escape(result));
                 resolve(result);
               }
@@ -437,6 +436,7 @@
             renderColors(2);
           }
         });
+        // 切换章节
         $('#preChapter').click(function() {
           if (chapterID > 0) {
             chapterID -= 1;
